@@ -1,0 +1,110 @@
+---
+title: "Geo-Politics and Chrono-Politics"
+subtitle: 'SDS 237: Final Project Checkpoint'
+author:
+  - FILL ME
+  - FILL ME
+  - FILL ME
+  - FILL ME
+date: "Last updated on `r Sys.Date()`"
+output: 
+  rmdformats::readthedown:
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+## The Importance of Place and Time
+
+Time and place often matter a great deal in how we interpret data. Let me provide a few examples from our readings and lectures this week that demonstrate why:
+
+### Case Study 1: Chrono-politics of Calls to 311 during Hurricane Sandy
+
+As discussed this week, 311 is basically a customer service number for cities - a number for residents and visitors to report non-emergency issues, such as potholes and graffiti, to city officials. In most cities, every call to 311 gets aggregated in a database, and increasingly, city officials are performing data analysis on the calls to figure out where certain issues in the city are concentrated. If they receive a number of calls about missed garbage pick-ups in a certain community, they may divert attention and resources there for improved sanitation. Often this data is publicly accessible for communities to analyze. 
+
+When Hurricane Sandy hit NYC in 2012, the City leveraged data about calls New Yorkers had made to 311 to track where a number of different issues were occurring. I've included a sample of that data regarding calls about damaged trees and lack of heat and hot water in apartments in a dataset below.
+
+```{r}
+#Run. 
+library(tidyverse)
+library(scales)
+library(lubridate)
+nyc311 <- read.csv("https://github.com/lindsaypoirier/STS-115/blob/master/datasets/311_before_2015.csv?raw=true", stringsAsFactors = FALSE) 
+nyc311 %>% head(10)
+```
+
+
+Visualizing data about 311 calls in the three months following the disaster indeed showed a spike in complaints about issues like damaged trees and lack of heat in apartment buildings throughout the city. Leveraging this data, the city was able to position the devastation of the disaster as episodic - a result of natural forces beyond their control.
+
+```{r fig.height=5, fig.width=10}
+#Run. 
+nyc311 %>% 
+  filter(year(Created.Date) == 2012 & month(Created.Date) %in% c(7:11)) %>%
+  ggplot(aes(x = as.Date(Created.Date), group = 1)) +
+  geom_vline(xintercept=as.Date(c("2012-10-29")),linetype=4, colour="black") +
+  geom_line(stat="count") + 
+  facet_wrap(~Complaint.Type) + 
+  labs(x="Month", y="Count") +
+  scale_x_date() +
+  theme_bw() +
+  annotate(geom = "label", x = as.Date("2012-10-29"), y = 4000, label = "Hurricane Sandy", angle = 90)
+```
+
+However, social researchers have argued that it is not so simple to delimit the temporal boundaries of a disaster. While a natural event may happen on a particular day or span of days, the structural conditions of the communities they impact have much longer timespans. Natural events occurring in delimited periods of time often exacerbate existing social issues like poverty, lack of affordable housing, and unequal access to healthcare. 
+
+Let's zoom out on the 311 data to look at these issues over the course of years versus these three months.  Complaints to 311 about damaged trees do spike following most major natural events. However, complaints about lack of heat in apartments spike every year in October ...because in New York, that's when it gets cold. By only looking at the data in months immediately after the disaster, the city could obscure the big picture - that poor New Yorkers face apartment negligence every year, not just immediately following a hurricane. The temporal context in which we analyze data matters a great deal for how we interpret it. 
+
+```{r fig.height=5, fig.width=10}
+#Run. 
+nyc311 %>% 
+  ggplot(aes(x=as.Date(Created.Date), col=as.factor(year(Created.Date)), group = year(Created.Date))) +
+  geom_vline(xintercept=as.Date(c("2010-03-12","2010-09-16","2011-08-28","2011-10-29","2012-10-29")),linetype=4, colour="black") +
+  geom_line(stat = "count") + 
+  facet_wrap(~Complaint.Type) +
+  labs(x="Month", col="Year") +
+  scale_x_date(breaks = "3 months", labels=date_format("%b-%y")) +
+  theme_bw() +
+  annotate(geom = "label", x = as.Date("2010-03-12"), y = 4000, label = "nor'easter", angle = 90) +
+  annotate(geom = "label", x = as.Date("2010-09-16"), y = 4000, label = "tornadoes", angle = 90) +
+  annotate(geom = "label", x = as.Date("2011-08-28"), y = 4000, label = "Hurricane Irene", angle = 90) +
+  annotate(geom = "label", x = as.Date("2011-10-29"), y = 4500, label = "Halloween nor'easter", angle = 90) +
+  annotate(geom = "label", x = as.Date("2012-10-29"), y = 4000, label = "Hurricane Sandy", angle = 90)
+  #nor'easter, tornadoes, Irene, Halloween nor'easter, Sandy
+```
+
+> See: Liboiron, Max. 2015. “Disaster Data, Data Activism: Grassroots Responses to Representing Superstorm Sandy.” In Extreme Weather and Global Media, edited by Julia Leyda and Diane Negra. Taylor & Francis Group. https://doi.org/10.4324/9781315756486-7.
+
+To interpret this plot, we need to have an understanding of *chrono-politics*, or the politics of time. When visualizing chrono-politics, we might consider how to visualize semantic changes, changes in data collection, changes in the data collection landscape, or confounding explanatory factors for change over time. 
+
+### Case Study 2: Geo-politics of Calls to 311 during Hurricane Sandy
+
+Now, let's consider not just *when* 311 calls were reported but also *where* they were reported. Because 311 calls are reported anonymously, we can't assess whether calls tend to come in disproportionately from certain demographics. However, there has been some research suggesting that we see a greater number of 311 calls being reported in more affluent communities that may have greater access to messaging about the 311 service, have greater access to the telephone or Internet infrastructure to report a call, and have more time to report issues. If we were to look at a map of the number of 311 calls regarding Damaged Trees the days following Hurricane Sandy's landfall, what sorts of geographic questions would we need to consider before assuming that these points indicated the neighborhoods in which there were the most damaged trees? 
+
+First, we would want to keep in mind that not everyone calls 311, and that it may be the case that certain communities tend to call 311 more than others. Next, we would want to consider which communities actually had capacity to call 311. Note in the map below that one area where fewer calls were reported was in Lower Manhattan - one of the areas of the City hardest hit by the storm. This also happens to be where the greatest power outages were documented following the Hurricane. If people can't charge their phones and computers, how are they going to report to 311?
+
+```{r, warning = FALSE}
+#Run.
+library(leaflet)
+
+nyc311 %>%
+  filter(Created.Date > "2012-10-28" & Created.Date < "2012-10-30" & Complaint.Type == "Damaged Tree") %>%
+  leaflet() %>% 
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  addMarkers(~Longitude, ~Latitude, clusterOptions = markerClusterOptions())
+```
+
+> See: Crawford, Kate, and Megan Finn. 2015. “The Limits of Crisis Data: Analytical and Ethical Challenges of Using Social and Mobile Data to Understand Disasters.” GeoJournal 80 (4): 491–502. https://doi.org/10.1007/s10708-014-9597-z.
+
+To interpret this plot then, we need to have an understanding of *geo-politics*, or politics mediated by geography and demography. To visualize geo-politics we might consider where there may be gaps in data collection, where data collection practices may be operating according to different standards, where differing institutional incentives in data collection bias the data, and where other confounding explanatory factors vary across space. 
+
+## Geo-Politics/Chrono-Politics in your Dataset
+
+For this checkpoint, you have just one assignment - create a plot that demonstrates chrono-politics or geo-politics in your dataset. Keep in mind that here we aren't so much interested in showing actual disparities across time or space, but instead to highlight/anticipate the ways in which people might misinterpret the data when ignoring the social and political contexts of time and space. 
+
+There are a number of tutorials online detailing how to create timeseries plots and state-by-state maps in R. If you have a specific plot that you would like to create in mind and can't find a relevant tutorial, send me a Slack message, and I will help to outline some steps you might take in this regard.
+
+```{r}
+#Fill code here.
+```
+
+Describe the geo-politics or chrono-politics represented in this chart. 

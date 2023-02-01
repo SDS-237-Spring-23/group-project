@@ -1,0 +1,244 @@
+---
+title: 'Semiotic Analysis'
+subtitle: 'SDS 237: Final Project Checkpoint'
+author:
+  - FILL ME
+  - FILL ME
+  - FILL ME
+  - FILL ME
+date: "Last updated on `r Sys.Date()`"
+output: 
+  rmdformats::readthedown:
+    df_print: paged
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Overview and Instructions
+
+In this checkpoint, you will import at least one table from your final project dataset into RStudio. You will write some R code to explore the observations and variables in the dataset. Then, referencing data documentation, you will study the definitions underlying the dataset, considering issues such as - What counts as an observation? How are observations counted or measured? How are observations categorized? In other words, in this assignment you will be performing an ethnography of data infrastructure - considering how the standards used to produce this dataset implicates what kinds of narratives we can draw from the data. 
+
+I will provide some examples of the kind of analysis I'm expecting throughout the document using a dataset I work with quite a bit in my research - the Department of Homeland Security's [Prison Boundaries](https://hifld-geoplatform.opendata.arcgis.com/datasets/geoplatform::prison-boundaries/about) dataset. This dataset documents the locations and operating statuses of jails, prisons, and detention centers throughout the US. 
+
+To start, update the YAML header above. In addition, install the following package:
+
+`install.packages("rmdformats")`
+
+The remainder of our checkpoints will be output this way. Knit the document to make sure everything works correctly. Commit your changes. After this, commit the file often.  
+
+## Load packages
+
+Be sure to run the code chunk below before moving on. 
+
+```{r}
+library(tidyverse)
+```
+
+## Import the data
+
+Reference the instructions in under the [Instructions for Loading Datasets into R
+](https://docs.google.com/document/d/1WoHetk8FSgdbpkj0jLctJWpwqIr3qIP_hZkWYLHaDfc/edit?usp=sharing) header to load your dataset into your R environment. Note that some of the datasets are quite large and may take a few moments to load. 
+
+```{r}
+prison_boundaries <- read.csv("datasets/Prison_Boundaries.csv")
+```
+
+```{r}
+#Fill code to load data here.
+```
+
+
+Run some basic summary functions on your dataset to examine the structure. Run `head()` to check out the first six rows of the dataset and `str()` to check out the variable names and their types. 
+
+```{r}
+prison_boundaries %>% head()
+```
+
+```{r}
+prison_boundaries %>% str()
+```
+
+```{r}
+# Fill code to analyze structure here.
+```
+
+Note any potential data quality issues, such in incorrectly typed variables, missing values reported as something other than NA values, or dates formatted as strings. I'm assuming that at least a few members of your team will know how to clean these things up. You can use my example below as a guide. Reach out to me if there is something you are unsure of how to fix. 
+
+```{r}
+library(lubridate)
+
+prison_boundaries <-
+  prison_boundaries %>%
+  mutate(across(where(is.character), ~na_if(., "NOT AVAILABLE"))) %>%
+  mutate(across(where(is.numeric), ~na_if(., -999))) %>%
+  mutate(VAL_DATE = ymd_hms(VAL_DATE)) %>%
+  mutate(SOURCEDATE = ymd_hms(SOURCEDATE))
+```
+
+```{r}
+#Fill data cleaning code here.
+```
+
+## Units of Observation
+
+Any time we count something in the world, we are not only engaging in a process of tabulation; we are also engaged in a process of defining. If I count the number of students in a class, I first have to define what counts as a student. If someone is auditing the class, do they count? If I, as the instructor, am learning from my students, do I count myself as a student? As I make decisions about how I’m going to define "student," those decisions impact the numbers that I produce. When I change my definition of "student," how I go about tabulating students also changes. Thus, as we prepare to count observations in a dataset, it is important to know how those observations are defined.
+
+### What makes each row in this dataset unique? 
+
+Identify the specific variables that uniquely identify each observation. Check to make sure that these values do not repeat in the dataset.
+
+```{r}
+# Here I assume that the FACILITYID is a unique identifier for each prison in the dataset. To check, I group by the FACILITYID and filter to the groups with more than one observation. If I'm right, 0 rows should appear, indicating that FACILITYID is unique to each row.
+
+prison_boundaries %>%
+  group_by(FACILITYID) %>% 
+  filter(n() > 1)
+```
+
+```{r}
+#Fill code confirm you've identified a unique ID for each row. Adjust your assumption if necessary, along with this code.
+```
+
+### What does each row in your dataset represent? 
+
+In the prison_boundaries dataset, each row is what some might call a correctional facility, and what my collaborators and I refer to as a carceral facility (i.e. a prison, jail, or detention center).
+
+**Fill your response here.**
+
+### How does that observation get defined in the data documentation? 
+
+For example, from the data documentation [here](https://hifld-geoplatform.opendata.arcgis.com/datasets/geoplatform::prison-boundaries/about), we learn that this dataset documents "secure detention facilities" When I run a Google search for a legal definition of a "secure detention facility" [I learn that](https://definitions.uslegal.com/s/secure-detention-facility/) 42 USCS § 5603 [Title 42. The Public Health And Welfare; Chapter 72. Juvenile Justice And Delinquency Prevention; Generally] defines a secure detention facility as follows:
+
+> any public or private residential facility which--
+* (A) includes construction fixtures designed to physically restrict the movements and activities of juveniles or other individuals held in lawful custody in such facility; and
+* (B) is used for the temporary placement of any juvenile who is accused of having committed an offense or of any other individual accused of having committed a criminal offense.
+
+Compare this to the more restrictive definitions of prisons, jails, and community confinement centers, according to 28 CFR § 115.5 - General definitions:
+
+> Prison means an institution under Federal or State jurisdiction whose primary use is for the confinement of individuals convicted of a serious crime, usually in excess of one year in length, or a felony.
+
+> Jail means a confinement facility of a Federal, State, or local law enforcement agency whose primary use is to hold persons pending adjudication of criminal charges, persons committed to confinement after adjudication of criminal charges for sentences of one year or less, or persons adjudicated guilty who are awaiting transfer to a correctional facility.
+
+> Community confinement facility means a community treatment center, halfway house, restitution center, mental health facility, alcohol or drug rehabilitation center, or other community correctional facility (including residential re-entry centers), other than a juvenile facility, in which individuals reside as part of a term of imprisonment or as a condition of pre-trial release or post-release supervision, while participating in gainful employment, employment search efforts, community service, vocational training, treatment, educational programs, or similar facility-approved programs during nonresidential hours.
+
+We also learn from the dataset documentation that military detention facilities are excluded. 
+
+As you are considering this, you should:
+
+* Look up legal definitions of the observation in your dataset according to the dataset producer, and others. How do they police the boundaries of what counts in these definitions?
+* Characterize the *sample* of observations in this dataset. In terms of the unit of observation, what gets included and excluded?
+* Consider how insights we derive from this dataset would change had a different definition been used. 
+
+**Fill your response here.**
+
+
+## Categorical Variables
+
+### Plot categorical variables in the dataset.
+
+Select a few categorical variables in your dataset, and create basic bar plots showing how the values in those categorical variables are distributed. Be sure to re-cast categorical variables coded as numbers as factors. Feel free to add as much styling as you wish - perhaps following page 2 of [this cheatsheet](https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf). 
+
+> Note that if you needed to reference multiple columns to uniquely identify each row, you are working with multi-dimensional data and may need to filter it down single-dimensional data or facet the plots for this plot to make sense. Check-in with me via a Slack DM if you are unsure of how to do this. 
+
+```{r}
+prison_boundaries %>%
+  ggplot(aes(x = TYPE)) + 
+  geom_bar() +
+  coord_flip() +
+  theme_minimal()
+
+prison_boundaries %>%
+  ggplot(aes(x = SECURELVL)) + 
+  geom_bar() +
+  coord_flip() +
+  theme_minimal()
+```
+
+
+```{r}
+#Fill code to plot bar charts here. 
+```
+
+What do you notice first?
+
+**Fill response here.**
+
+### Examine the residual categories
+
+Residual categories are the catch-all categories for those things not easily classified. If you identified a residual category in your dataset, or a category with many missing values. Filter to those rows in the dataset and examine what's going on there. Can you discern anything about the observations that don't fit into the standard classification systems?
+
+```{r}
+prison_boundaries %>%
+  filter(is.na(TYPE))
+
+prison_boundaries %>%
+  filter(TYPE == "MULTI")
+
+prison_boundaries %>%
+  filter(is.na(SECURELVL))
+```
+
+Filtering to the NA rows in the TYPE column of the prison boundaries dataset, I learn that many rehab and treatment facilities don't fit into the standard categories, along with probation detention centers. Filtering to rows where the TYPE is equal to MULTI, I learn that complexes and privately owned facilities are not easily classified. Filtering to the NA rows in the SECURELVL column, I learn that security levels do not apply to most county jails. 
+
+```{r}
+#Fill code to filter to residual categories here. 
+```
+
+What do you notice first?
+
+**Fill response here.**
+
+### What is the provenance of these categories?
+
+I check the data documentation for this dataset to determine who came up with these categories. The documentation is pretty bare bones, so there's nothing in the documentation indicating this. At this point, you should run Google searches to see what you can find about the history of these categories and what their distinctions are. For instance, to respond to this question, I could summarize what I learn from [this document](https://www.bop.gov/policy/progstat/5100_008cn.pdf) regarding how the Bureau of Prisons designates security levels. I could also summarize what I learn from [this website](https://www.motherjones.com/politics/2016/06/history-of-americas-private-prison-industry-timeline/). 
+
+What do you learn from research into the history and stewardship of these categorical systems?
+
+**Fill response here.**
+
+### What do these categories include and exclude?
+
+It's notable to me that under the TYPE variable, there is no category for private facilities or for ICE detention centers. This means that we have no way of distinctly identifying this kind of facility from the dataset. 
+
+What do you notice about what gets categorically excluded from your dataset?
+
+**Fill response here.**
+
+
+## Numeric Variables
+
+### Plot numeric variables in the dataset.
+
+Select a count or measurement in your dataset, and create basic histograms showing how the values in those numeric variables are distributed. Feel free to add as much styling as you wish - perhaps following page 2 of [this cheatsheet](https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf).
+
+> Note that if you needed to reference multiple columns to uniquely identify each row, you are working with multi-dimensional data and may need to filter it down single-dimensional data or facet the plots for this plot to make sense. Check-in with me via a Slack DM if you are unsure of how to do this. 
+
+```{r}
+prison_boundaries %>%
+  ggplot(aes(x = POPULATION)) + 
+  geom_histogram(binwidth = 500) +
+  theme_minimal()
+
+prison_boundaries %>%
+  ggplot(aes(x = CAPACITY)) + 
+  geom_histogram(binwidth = 500) +
+  theme_minimal()
+```
+```{r}
+#Fill code to plot histograms here. 
+```
+
+What do you notice first?
+
+**Fill response here.**
+
+### According to what standards are these numbers reported?
+
+Referring to the data documentation, I learn that representatives from the team at the Department of Homeland Security aggregated this dataset by referencing information about each facility recorded on the facility's websites or other administrative sources. If the data about Population or Capacity was not recorded in this source, then it was listed as missing in the dataset. With this in mind, the accuracy and consistency of the numbers reported in these columns is largely dependent on which organization reported the numbers. There are no definitions for "POPULATON" or "CAPACITY" in the documentation, so I'm unsure what counts as an incarcerated individual in these measures. (e.g. does a person in in-take count?) Because the numbers are reported from a number of different sources, there are likely inconsistencies in the dataset regarding the definitions of these variables; population reported by one facility could be different from population reported by another facility. You might think about how this relates to the discussion of translation in chapter 1 of *Cooking Data*.
+
+What are the definitions and standards regarding how numbers are recorded in your dataset?
+
+**Fill response here.**
+
+
+
